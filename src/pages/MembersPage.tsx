@@ -118,11 +118,11 @@ export function MembersPage({
         open={!!selectedMember}
         onOpenChange={(open) => !open && setSelectedMember(null)}
       >
-        <SheetContent className="w-[400px] sm:max-w-[400px] p-0">
+        <SheetContent className="w-[400px] sm:max-w-[400px] p-0 bg-sidebar">
           <div className="flex flex-col gap-4 p-4 h-full overflow-y-auto">
 
             {/* Patreon Address Card */}
-            <Card>
+            <Card className="bg-background ring-0">
               <CardHeader>
                 <CardTitle className="text-sm">Patreon Address</CardTitle>
               </CardHeader>
@@ -149,7 +149,7 @@ export function MembersPage({
             </Card>
 
             {/* Clean Address Card */}
-            <Card>
+            <Card className="bg-background ring-0">
               <CardHeader>
                 <CardTitle className="text-sm">Clean Address</CardTitle>
               </CardHeader>
