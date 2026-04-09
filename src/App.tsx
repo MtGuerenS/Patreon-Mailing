@@ -1,35 +1,51 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/electron-vite.animate.svg'
-import './App.css'
+import { Routes, Route } from "react-router-dom";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/AppSidebar";
+import { MembersPage } from "@/pages/MembersPage";
+import { EnvelopesPage } from "@/pages/EnvelopesPage";
+import { usePatreonAuth } from "@/hooks/usePatreonAuth";
+import { usePatreonMembers } from "@/hooks/usePatreonMembers";
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const membersData = usePatreonMembers();
+  const auth = usePatreonAuth(membersData.loadMembers);
+
+  const error = auth.error ?? membersData.error;
+
+  const handleLogin = () => auth.login(membersData.loadMembers);
+  const handleLogout = () => {
+    auth.logout();
+    membersData.reset();
+  };
+  const handleRefresh = () =>
+    auth.accessToken && membersData.refreshMembers(auth.accessToken);
 
   return (
-    <>
-      <div>
-        <a href="https://electron-vite.github.io" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <SidebarProvider>
+      <div className="flex h-screen w-full overflow-hidden">
+        <AppSidebar />
+        <main className="flex-1 overflow-auto">
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <MembersPage
+                  accessToken={auth.accessToken}
+                  members={membersData.members}
+                  included={membersData.included}
+                  dbMembers={membersData.dbMembers}
+                  loading={membersData.loading}
+                  error={error}
+                  onLogin={handleLogin}
+                  onLogout={handleLogout}
+                  onRefresh={handleRefresh}
+                />
+              }
+            />
+            <Route path="/envelopes" element={<EnvelopesPage />} />
+          </Routes>
+        </main>
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    </SidebarProvider>
+  );
 }
-
-export default App
