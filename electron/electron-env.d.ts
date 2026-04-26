@@ -29,12 +29,19 @@ interface Window {
       accessToken: string,
     ) => Promise<any>;
     refreshMembers: () => Promise<void>;
-    dbSyncMembers: () => Promise<any[]>
+    dbSyncMembers: () => Promise<any[]>;
     dbGetMembers: () => Promise<any[]>;
     dbUpdateCleanAddress: (id: string, fields: any) => Promise<void>;
     dbSetStatus: (
       id: string,
       status: "verified" | "check_needed" | "missing",
+    ) => Promise<void>;
+    getPacked: (year: number, month: number) => Promise<string[]>;
+    setPacked: (
+      memberId: string,
+      year: number,
+      month: number,
+      packed: boolean,
     ) => Promise<void>;
   };
 }

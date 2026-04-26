@@ -1,13 +1,9 @@
 import { app, BrowserWindow } from 'electron'
-import { createRequire } from 'node:module'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
-import dotenv from 'dotenv'
 import { registerIpcHandlers } from './ipc'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-
-dotenv.config({ path: path.join(__dirname, '../.env') })
 
 process.env.APP_ROOT = path.join(__dirname, '..')
 

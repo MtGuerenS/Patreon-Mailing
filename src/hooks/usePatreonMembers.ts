@@ -46,5 +46,5 @@ export function usePatreonMembers() {
     setError(null)
   }
 
-  return { members, included, dbMembers, loading, error, loadMembers, refreshMembers, reset }
+  return { members, included, dbMembers, setDbMembers, loading, error, loadMembers, refreshMembers, reset }
 }

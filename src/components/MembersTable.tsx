@@ -47,6 +47,7 @@ interface Props {
   onYearChange: (val: string) => void;
   emptyLabel: string;
   onMemberSelect: (member: MemberRow) => void;
+  onTogglePacked: (memberId: string) => void;
 }
 
 export function MembersTable({
@@ -57,6 +58,7 @@ export function MembersTable({
   onYearChange,
   emptyLabel,
   onMemberSelect,
+  onTogglePacked,
 }: Props) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -83,12 +85,16 @@ export function MembersTable({
         header: ({ column }) => <SortHeader column={column} label="Packed" />,
         cell: ({ row }) => (
           <input
-            type="checkbox"
-            checked={row.original.packed}
-            onChange={() => {}}
-            className="h-4 w-4 cursor-pointer"
+              type="checkbox"
+              checked={row.original.packed}
+              onChange={(e) => {
+                  e.stopPropagation(); // prevent row click opening the sheet
+                  onTogglePacked(row.original.id);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="h-4 w-4 cursor-pointer"
           />
-        ),
+      ),
       },
       {
         accessorKey: "full_name",
@@ -105,8 +111,12 @@ export function MembersTable({
         header: ({ column }) => <SortHeader column={column} label="Tier" />,
       },
       {
-        accessorKey: "street",
-        header: ({ column }) => <SortHeader column={column} label="Street" />,
+        accessorKey: "line_1",
+        header: ({ column }) => <SortHeader column={column} label="Address Line 1" />,
+      },
+      {
+        accessorKey: "line_2",
+        header: ({ column }) => <SortHeader column={column} label="Address Line 2" />,
       },
       {
         accessorKey: "city",
@@ -125,7 +135,7 @@ export function MembersTable({
         header: ({ column }) => <SortHeader column={column} label="Country" />,
       },
     ],
-    [],
+    [onTogglePacked],
   );
 
   const table = useReactTable({

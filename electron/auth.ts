@@ -1,4 +1,4 @@
-import { BrowserWindow, session, net, safeStorage, ipcMain } from "electron";
+import { BrowserWindow, session, net, safeStorage } from "electron";
 import { store } from "./store";
 
 const REDIRECT_URI = "http://localhost:54321/callback";

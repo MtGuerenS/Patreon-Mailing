@@ -18,6 +18,8 @@ import {
   updateCleanAddress,
   setAddressStatus,
   getDb,
+  getPackedIds,
+  setPacked,
 } from "./db";
 import type { BrowserWindow } from "electron";
 
@@ -55,51 +57,55 @@ export function registerIpcHandlers(getWin: () => BrowserWindow | null) {
     clearMembersCache();
   });
 
-  ipcMain.handle('db-sync-members', (_event) => {
-    const cache = loadMembersCache()
-    if (!cache) throw new Error('No members cache found, fetch members first')
-    
-    const { data, included } = cache
-    
+  ipcMain.handle("db-sync-members", (_event) => {
+    const cache = loadMembersCache();
+    if (!cache) throw new Error("No members cache found, fetch members first");
+
+    const { data, included } = cache;
+
     // Filter to only members who have ever paid
-    const paidMembers = data.filter(member => {
+    const paidMembers = data.filter((member) => {
       const pledgeEventIds: string[] = (
         member.relationships?.pledge_history?.data ?? []
-      ).map((d: any) => d.id)
-  
-      if (pledgeEventIds.length === 0) return false
-  
+      ).map((d: any) => d.id);
+
+      if (pledgeEventIds.length === 0) return false;
+
       return included.some(
-        item => item.type === 'pledge-event' &&
-        pledgeEventIds.includes(item.id) &&
-        item.attributes.payment_status === 'Paid'
-      )
-    })
-  
+        (item) =>
+          item.type === "pledge-event" &&
+          pledgeEventIds.includes(item.id) &&
+          item.attributes.payment_status === "Paid",
+      );
+    });
+
     const sync = getDb().transaction(() => {
       for (const member of paidMembers) {
-        const existing = getMemberById(member.id)
-  
-        const addressId = member.relationships?.address?.data?.id ?? null
+        const existing = getMemberById(member.id);
+
+        const addressId = member.relationships?.address?.data?.id ?? null;
         const addressObj = addressId
-          ? included.find((i: any) => i.type === 'address' && i.id === addressId)
-          : null
-        const a = addressObj?.attributes ?? null
-  
-        const hasAddress = !!a?.line_1
-  
-        const addressChanged = existing && hasAddress && (
-          existing.raw_line_1 !== (a.line_1 ?? null) ||
-          existing.raw_city !== (a.city ?? null) ||
-          existing.raw_postal_code !== (a.postal_code ?? null)
-        )
-  
-        const status: 'missing' | 'check_needed' | 'verified' = !hasAddress
-          ? 'missing'
+          ? included.find(
+              (i: any) => i.type === "address" && i.id === addressId,
+            )
+          : null;
+        const a = addressObj?.attributes ?? null;
+
+        const hasAddress = !!a?.line_1;
+
+        const addressChanged =
+          existing &&
+          hasAddress &&
+          (existing.raw_line_1 !== (a.line_1 ?? null) ||
+            existing.raw_city !== (a.city ?? null) ||
+            existing.raw_postal_code !== (a.postal_code ?? null));
+
+        const status: "missing" | "check_needed" | "verified" = !hasAddress
+          ? "missing"
           : addressChanged
-            ? 'check_needed'
-            : existing?.address_status ?? 'check_needed'
-  
+            ? "check_needed"
+            : (existing?.address_status ?? "check_needed");
+
         upsertMember({
           id: member.id,
           full_name: member.attributes?.full_name ?? null,
@@ -118,14 +124,13 @@ export function registerIpcHandlers(getWin: () => BrowserWindow | null) {
           clean_postal_code: existing?.clean_postal_code ?? null,
           clean_country: existing?.clean_country ?? null,
           address_status: status,
-          notes: existing?.notes ?? null,
-        })
+        });
       }
-    })
-  
-    sync()
-    return getAllMembers()
-  })
+    });
+
+    sync();
+    return getAllMembers();
+  });
 
   ipcMain.handle("db-get-members", () => getAllMembers());
 
@@ -136,4 +141,15 @@ export function registerIpcHandlers(getWin: () => BrowserWindow | null) {
   ipcMain.handle("db-set-status", (_event, id: string, status) => {
     setAddressStatus(id, status);
   });
+
+  ipcMain.handle("get-packed", (_e, year: number, month: number) =>
+    getPackedIds(year, month),
+  );
+
+  ipcMain.handle(
+    "set-packed",
+    (_e, memberId: string, year: number, month: number, packed: boolean) => {
+      setPacked(memberId, year, month, packed);
+    },
+  );
 }

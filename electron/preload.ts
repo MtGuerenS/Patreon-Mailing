@@ -42,4 +42,8 @@ contextBridge.exposeInMainWorld("patreonAPI", {
 
   dbSetStatus: (id: string, status: string) =>
     ipcRenderer.invoke("db-set-status", id, status),
+
+  getPacked:  (year: number, month: number) => ipcRenderer.invoke("get-packed", year, month),
+
+  setPacked:  (memberId: string, year: number, month: number, packed: boolean) => ipcRenderer.invoke("set-packed", memberId, year, month, packed),
 });
