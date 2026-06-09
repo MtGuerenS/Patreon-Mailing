@@ -45,17 +45,12 @@ function AppSidebarInner({ accessToken, onLogin, onLogout }: Props) {
     handleResize()
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
-  }, [])
+  }, [setOpen, setOpenMobile])
 
   return (
     <Sidebar collapsible="icon" style={{ '--sidebar-width': '250px' } as React.CSSProperties}>
       <SidebarHeader className="p-4 group-data-[collapsible=icon]:p-4">
-        <div className="flex items-center gap-2">
-          <img
-            src="/icon-dark.png"
-            alt="icon"
-            style={{ width: '20px', height: '20px', objectFit: 'contain', flexShrink: 0, minWidth: '20px' }}
-          />
+        <div className="flex items-center gap-2">        
           <span className="font-semibold text-[14px] group-data-[collapsible=icon]:hidden">
             Patreon Mailing
           </span>

@@ -1,15 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 export function usePatreonAuth(onTokenReady?: (token: string) => void) {
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
+  const onTokenReadyRef = useRef(onTokenReady)
+  useEffect(() => {
+    onTokenReadyRef.current = onTokenReady
+  })
+
   useEffect(() => {
     window.patreonAPI.getSavedTokens().then(tokens => {
       if (tokens) {
         setAccessToken(tokens.access_token)
-        onTokenReady?.(tokens.access_token)
+        onTokenReadyRef.current?.(tokens.access_token)
       }
       setLoading(false)
     })

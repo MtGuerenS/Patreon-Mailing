@@ -62,6 +62,18 @@ export function EnvelopesPage({
   const imageRef = useRef<HTMLImageElement | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Stable refs for values used only in the mount effect
+  const templateRef = useRef(template);
+  const widthPctRef = useRef(widthPct);
+  const heightPctRef = useRef(heightPct);
+  const bgColorRef = useRef(bgColor);
+  useEffect(() => {
+    templateRef.current = template;
+    widthPctRef.current = widthPct;
+    heightPctRef.current = heightPct;
+    bgColorRef.current = bgColor;
+  });
+
   const dateRange = useMemo(
     () => ({
       from: new Date(parseInt(selectedYear), parseInt(selectedMonth), 1),
@@ -215,16 +227,19 @@ export function EnvelopesPage({
     reader.readAsDataURL(file);
   };
 
+  // Mount-only effect: restore canvas when revisiting the page with a saved template.
+  // Reads from refs so the dep array is honestly [] without triggering on slider changes.
   useEffect(() => {
-    if (!template) return;
+    if (!templateRef.current) return;
     const img = new Image();
     img.onload = () => {
       imageRef.current = img;
       document.fonts.load(`bold 40px "Delius"`).then(() => {
-        renderCanvas(img, widthPct, heightPct, bgColor);
+        renderCanvas(img, widthPctRef.current, heightPctRef.current, bgColorRef.current);
       });
     };
-    img.src = template;
+    img.src = templateRef.current;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const box = imageRef.current

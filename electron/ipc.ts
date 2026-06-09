@@ -60,7 +60,7 @@ export function registerIpcHandlers(getWin: () => BrowserWindow | null) {
     clearMembersCache();
   });
 
-  ipcMain.handle("db-sync-members", (_event) => {
+  ipcMain.handle("db-sync-members", () => {
     const cache = loadMembersCache();
     if (!cache) throw new Error("No members cache found, fetch members first");
 

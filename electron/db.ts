@@ -15,9 +15,17 @@ export function getDb(): Database.Database {
   return db;
 }
 
+interface PragmaColumn {
+  name: string;
+  type: string;
+  notnull: number;
+  dflt_value: string | null;
+  pk: number;
+}
+
 function migrate(db: Database.Database) {
   const hasNotesColumn = (
-    db.prepare(`PRAGMA table_info(members)`).all() as any[]
+    db.prepare(`PRAGMA table_info(members)`).all() as PragmaColumn[]
   ).some((col) => col.name === "notes");
 
   if (hasNotesColumn) {
@@ -177,11 +185,15 @@ export function setAddressStatus(
     .run(status, new Date().toISOString(), id);
 }
 
+interface PackedRow {
+  member_id: string;
+}
+
 export function getPackedIds(year: number, month: number): string[] {
   return getDb()
     .prepare(`SELECT member_id FROM packed WHERE year = ? AND month = ?`)
     .all(year, month)
-    .map((r: any) => r.member_id);
+    .map((r) => (r as PackedRow).member_id);
 }
 
 export function setPacked(

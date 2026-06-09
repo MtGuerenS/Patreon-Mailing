@@ -2,13 +2,13 @@ import { app } from 'electron'
 import fs from 'node:fs'
 import path from 'node:path'
 
-type StoreData = Record<string, any>
+type StoreData = Record<string, unknown>
 
 const storePath = () => path.join(app.getPath('userData'), 'app-store.json')
 
 function read(): StoreData {
   try {
-    return JSON.parse(fs.readFileSync(storePath(), 'utf-8'))
+    return JSON.parse(fs.readFileSync(storePath(), 'utf-8')) as StoreData
   } catch {
     return {}
   }
@@ -22,7 +22,7 @@ export const store = {
   get<T>(key: string, defaultValue?: T): T | undefined {
     return (read()[key] as T) ?? defaultValue
   },
-  set(key: string, value: any): void {
+  set(key: string, value: unknown): void {
     const data = read()
     data[key] = value
     write(data)

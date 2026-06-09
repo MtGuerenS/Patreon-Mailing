@@ -108,6 +108,18 @@ function EnvelopeCanvas({
     const imgRef = useRef<HTMLImageElement | null>(null);
     const [imgLoaded, setImgLoaded] = useState(false);
 
+    // Keep latest render params in refs so the draw effect doesn't need them as deps
+    const memberRef = useRef(member);
+    const widthPctRef = useRef(widthPct);
+    const heightPctRef = useRef(heightPct);
+    const bgColorRef = useRef(bgColor);
+    useEffect(() => {
+        memberRef.current = member;
+        widthPctRef.current = widthPct;
+        heightPctRef.current = heightPct;
+        bgColorRef.current = bgColor;
+    });
+
     useEffect(() => {
         const img = new Image();
         img.onload = () => {
@@ -122,10 +134,10 @@ function EnvelopeCanvas({
         const canvas = canvasRef.current;
         const img = imgRef.current;
         if (!canvas || !img) return;
-        const liveDb = dbMemberMap[member.id];
-        const addressLines = getAddressLines(member, liveDb);
+        const liveDb = dbMemberMap[memberRef.current.id];
+        const addressLines = getAddressLines(memberRef.current, liveDb);
         if (addressLines.length === 0) return;
-        drawEnvelope(canvas, img, addressLines, widthPct, heightPct, bgColor);
+        drawEnvelope(canvas, img, addressLines, widthPctRef.current, heightPctRef.current, bgColorRef.current);
     }, [imgLoaded, dbMemberMap]);
 
     return (
@@ -156,6 +168,18 @@ function ExpandedEnvelope({
     const [imgLoaded, setImgLoaded] = useState(false);
     const liveDb = dbMemberMap[member.id];
 
+    // Keep latest render params in refs so the draw effect doesn't need them as deps
+    const memberRef = useRef(member);
+    const widthPctRef = useRef(widthPct);
+    const heightPctRef = useRef(heightPct);
+    const bgColorRef = useRef(bgColor);
+    useEffect(() => {
+        memberRef.current = member;
+        widthPctRef.current = widthPct;
+        heightPctRef.current = heightPct;
+        bgColorRef.current = bgColor;
+    });
+
     useEffect(() => {
         const img = new Image();
         img.onload = () => {
@@ -170,9 +194,9 @@ function ExpandedEnvelope({
         const canvas = canvasRef.current;
         const img = imgRef.current;
         if (!canvas || !img) return;
-        const addressLines = getAddressLines(member, liveDb);
+        const addressLines = getAddressLines(memberRef.current, liveDb);
         if (addressLines.length === 0) return;
-        drawEnvelope(canvas, img, addressLines, widthPct, heightPct, bgColor);
+        drawEnvelope(canvas, img, addressLines, widthPctRef.current, heightPctRef.current, bgColorRef.current);
     }, [imgLoaded, liveDb]);
 
     // canvas area = screen width minus panel width and margins

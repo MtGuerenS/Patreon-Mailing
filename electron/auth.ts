@@ -18,7 +18,11 @@ export async function openPatreonAuth(win: BrowserWindow | null) {
       { urls: ["http://localhost:54321/*"] },
       null,
     );
-  } catch {}
+  } catch (e) {
+    if (process.env.NODE_ENV === 'development') {
+      console.debug('[auth] webRequest listener already cleared:', e);
+    }
+  }
 
   const { clientId } = getCredentials();
   const params = new URLSearchParams({
@@ -49,7 +53,11 @@ export async function openPatreonAuth(win: BrowserWindow | null) {
           { urls: ["http://localhost:54321/*"] },
           null,
         );
-      } catch {}
+      } catch (e) {
+        if (process.env.NODE_ENV === 'development') {
+          console.debug('[auth] webRequest listener already cleared:', e);
+        }
+      }
 
       authWindow?.close();
 
@@ -80,7 +88,11 @@ export async function openPatreonAuth(win: BrowserWindow | null) {
         { urls: ["http://localhost:54321/*"] },
         null,
       );
-    } catch {}
+    } catch (e) {
+      if (process.env.NODE_ENV === 'development') {
+        console.debug('[auth] webRequest listener already cleared:', e);
+      }
+    }
     authWindow = null;
   });
 }
