@@ -74,6 +74,9 @@ jobs:
             - name: Install dependencies
               run: pnpm install --frozen-lockfile
 
+            - name: Build app
+              run: pnpm build
+
             - name: Build (${{ matrix.arch }})
               run: pnpm exec electron-builder --mac dmg --${{ matrix.arch }}
               env:
