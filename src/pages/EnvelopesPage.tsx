@@ -18,6 +18,7 @@ import {
   YEARS,
 } from "@/lib/patreon";
 import { usePackedMembers } from "@/hooks/usePackedMembers";
+import { useMembersContext } from "@/context/MembersContext"
 
 type BoundingBox = { x: number; y: number; width: number; height: number };
 
@@ -29,9 +30,6 @@ const SAMPLE_ADDRESS = [
 ];
 
 interface Props {
-  dbMembers: any[];
-  members: any[];
-  included: any[];
   template: string | null;
   onTemplateChange: (v: string | null) => void;
   bgColor: string;
@@ -49,7 +47,6 @@ interface Props {
 }
 
 export function EnvelopesPage({
-  dbMembers, members, included,
   template, onTemplateChange: setTemplate,
   bgColor, onBgColorChange: setBgColor,
   widthPct, onWidthPctChange: setWidthPct,
@@ -58,6 +55,7 @@ export function EnvelopesPage({
   selectedYear, onYearChange: setSelectedYear,
   selectedTier, onTierChange: setSelectedTier,
 }: Props) {
+  const { members, included, dbMembers } = useMembersContext();
   const navigate = useNavigate();
 
   const canvasRef = useRef<HTMLCanvasElement>(null);

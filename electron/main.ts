@@ -15,11 +15,15 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
   ? path.join(process.env.APP_ROOT, 'public')
   : RENDERER_DIST
 
-let win: BrowserWindow | null = null
+let mainWin: BrowserWindow | null = null  // renamed to make it explicit
 
 function createWindow() {
-  win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+  mainWin = new BrowserWindow({
+    icon: path.join(process.env.VITE_PUBLIC, 'icon.png'),
+    width: 440,
+    height: 580,
+    resizable: false,
+    center: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.mjs'),
       contextIsolation: true,
@@ -28,9 +32,9 @@ function createWindow() {
   })
 
   if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL)
+    mainWin.loadURL(VITE_DEV_SERVER_URL)
   } else {
-    win.loadFile(path.join(RENDERER_DIST, 'index.html'))
+    mainWin.loadFile(path.join(RENDERER_DIST, 'index.html'))
   }
 }
 
@@ -38,17 +42,20 @@ const gotLock = app.requestSingleInstanceLock()
 if (!gotLock) app.quit()
 
 app.on('window-all-closed', () => {
+  // Only quit if the MAIN window is gone, not any secondary windows
   if (process.platform !== 'darwin') {
-    app.quit()
-    win = null
+    if (!mainWin || mainWin.isDestroyed()) {
+      app.quit()
+      mainWin = null
+    }
   }
 })
 
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0) createWindow()
+  if (!mainWin || mainWin.isDestroyed()) createWindow()
 })
 
 app.whenReady().then(() => {
   createWindow()
-  registerIpcHandlers(() => win)
+  registerIpcHandlers(() => mainWin)  // always returns the main window
 })

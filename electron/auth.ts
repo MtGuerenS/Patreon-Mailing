@@ -32,8 +32,6 @@ export async function openPatreonAuth(win: BrowserWindow | null) {
   authWindow = new BrowserWindow({
     width: 600,
     height: 700,
-    parent: win ?? undefined,
-    modal: true,
     webPreferences: { nodeIntegration: false, contextIsolation: true },
   });
 

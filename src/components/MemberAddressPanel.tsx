@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -10,123 +10,64 @@ import { X, Pencil, TriangleAlert, Loader2, RotateCcw } from "lucide-react";
 import { VisuallyHidden as VisuallyHiddenPrimitive } from "radix-ui";
 import { FloatingInput } from "@/components/FloatingInput";
 import { type MemberRow } from "@/lib/patreon";
-
-const ISO_COUNTRIES: Record<string, string> = {
-  AF: "Afghanistan", AX: "Aland Islands", AL: "Albania", DZ: "Algeria",
-  AS: "American Samoa", AD: "Andorra", AO: "Angola", AI: "Anguilla",
-  AQ: "Antarctica", AG: "Antigua And Barbuda", AR: "Argentina", AM: "Armenia",
-  AW: "Aruba", AU: "Australia", AT: "Austria", AZ: "Azerbaijan",
-  BS: "Bahamas", BH: "Bahrain", BD: "Bangladesh", BB: "Barbados",
-  BY: "Belarus", BE: "Belgium", BZ: "Belize", BJ: "Benin", BM: "Bermuda",
-  BT: "Bhutan", BO: "Bolivia", BA: "Bosnia And Herzegovina", BW: "Botswana",
-  BV: "Bouvet Island", BR: "Brazil", IO: "British Indian Ocean Territory",
-  BN: "Brunei Darussalam", BG: "Bulgaria", BF: "Burkina Faso", BI: "Burundi",
-  KH: "Cambodia", CM: "Cameroon", CA: "Canada", CV: "Cape Verde",
-  KY: "Cayman Islands", CF: "Central African Republic", TD: "Chad",
-  CL: "Chile", CN: "China", CX: "Christmas Island", CC: "Cocos (Keeling) Islands",
-  CO: "Colombia", KM: "Comoros", CG: "Congo", CD: "Congo, Democratic Republic",
-  CK: "Cook Islands", CR: "Costa Rica", CI: "Cote D'Ivoire", HR: "Croatia",
-  CU: "Cuba", CY: "Cyprus", CZ: "Czech Republic", DK: "Denmark",
-  DJ: "Djibouti", DM: "Dominica", DO: "Dominican Republic", EC: "Ecuador",
-  EG: "Egypt", SV: "El Salvador", GQ: "Equatorial Guinea", ER: "Eritrea",
-  EE: "Estonia", ET: "Ethiopia", FK: "Falkland Islands (Malvinas)",
-  FO: "Faroe Islands", FJ: "Fiji", FI: "Finland", FR: "France",
-  GF: "French Guiana", PF: "French Polynesia", TF: "French Southern Territories",
-  GA: "Gabon", GM: "Gambia", GE: "Georgia", DE: "Germany", GH: "Ghana",
-  GI: "Gibraltar", GR: "Greece", GL: "Greenland", GD: "Grenada",
-  GP: "Guadeloupe", GU: "Guam", GT: "Guatemala", GG: "Guernsey",
-  GN: "Guinea", GW: "Guinea-Bissau", GY: "Guyana", HT: "Haiti",
-  HM: "Heard Island & Mcdonald Islands", VA: "Holy See (Vatican City State)",
-  HN: "Honduras", HK: "Hong Kong", HU: "Hungary", IS: "Iceland",
-  IN: "India", ID: "Indonesia", IR: "Iran, Islamic Republic Of", IQ: "Iraq",
-  IE: "Ireland", IM: "Isle Of Man", IL: "Israel", IT: "Italy",
-  JM: "Jamaica", JP: "Japan", JE: "Jersey", JO: "Jordan", KZ: "Kazakhstan",
-  KE: "Kenya", KI: "Kiribati", KR: "Korea", KW: "Kuwait", KG: "Kyrgyzstan",
-  LA: "Lao People's Democratic Republic", LV: "Latvia", LB: "Lebanon",
-  LS: "Lesotho", LR: "Liberia", LY: "Libyan Arab Jamahiriya",
-  LI: "Liechtenstein", LT: "Lithuania", LU: "Luxembourg", MO: "Macao",
-  MK: "Macedonia", MG: "Madagascar", MW: "Malawi", MY: "Malaysia",
-  MV: "Maldives", ML: "Mali", MT: "Malta", MH: "Marshall Islands",
-  MQ: "Martinique", MR: "Mauritania", MU: "Mauritius", YT: "Mayotte",
-  MX: "Mexico", FM: "Micronesia, Federated States Of", MD: "Moldova",
-  MC: "Monaco", MN: "Mongolia", ME: "Montenegro", MS: "Montserrat",
-  MA: "Morocco", MZ: "Mozambique", MM: "Myanmar", NA: "Namibia",
-  NR: "Nauru", NP: "Nepal", NL: "Netherlands", AN: "Netherlands Antilles",
-  NC: "New Caledonia", NZ: "New Zealand", NI: "Nicaragua", NE: "Niger",
-  NG: "Nigeria", NU: "Niue", NF: "Norfolk Island", MP: "Northern Mariana Islands",
-  NO: "Norway", OM: "Oman", PK: "Pakistan", PW: "Palau",
-  PS: "Palestinian Territory, Occupied", PA: "Panama", PG: "Papua New Guinea",
-  PY: "Paraguay", PE: "Peru", PH: "Philippines", PN: "Pitcairn",
-  PL: "Poland", PT: "Portugal", PR: "Puerto Rico", QA: "Qatar",
-  RE: "Reunion", RO: "Romania", RU: "Russian Federation", RW: "Rwanda",
-  BL: "Saint Barthelemy", SH: "Saint Helena", KN: "Saint Kitts And Nevis",
-  LC: "Saint Lucia", MF: "Saint Martin", PM: "Saint Pierre And Miquelon",
-  VC: "Saint Vincent And Grenadines", WS: "Samoa", SM: "San Marino",
-  ST: "Sao Tome And Principe", SA: "Saudi Arabia", SN: "Senegal",
-  RS: "Serbia", SC: "Seychelles", SL: "Sierra Leone", SG: "Singapore",
-  SK: "Slovakia", SI: "Slovenia", SB: "Solomon Islands", SO: "Somalia",
-  ZA: "South Africa", GS: "South Georgia And Sandwich Isl.", ES: "Spain",
-  LK: "Sri Lanka", SD: "Sudan", SR: "Suriname", SJ: "Svalbard And Jan Mayen",
-  SZ: "Swaziland", SE: "Sweden", CH: "Switzerland", SY: "Syrian Arab Republic",
-  TW: "Taiwan", TJ: "Tajikistan", TZ: "Tanzania", TH: "Thailand",
-  TL: "Timor-Leste", TG: "Togo", TK: "Tokelau", TO: "Tonga",
-  TT: "Trinidad And Tobago", TN: "Tunisia", TR: "Turkey", TM: "Turkmenistan",
-  TC: "Turks And Caicos Islands", TV: "Tuvalu", UG: "Uganda", UA: "Ukraine",
-  AE: "United Arab Emirates", GB: "United Kingdom", US: "United States",
-  UM: "United States Outlying Islands", UY: "Uruguay", UZ: "Uzbekistan",
-  VU: "Vanuatu", VE: "Venezuela", VN: "Viet Nam", VG: "Virgin Islands, British",
-  VI: "Virgin Islands, U.S.", WF: "Wallis And Futuna", EH: "Western Sahara",
-  YE: "Yemen", ZM: "Zambia", ZW: "Zimbabwe",
-};
-
-export function getCountryName(code: string): string {
-  if (!code || code === "—") return "";
-  return (ISO_COUNTRIES[code.toUpperCase()] ?? code).toUpperCase();
-}
-
-export function toUpper(val: string | undefined): string {
-  if (!val || val === "—") return "";
-  return val.toUpperCase();
-}
-
-export interface CleanAddressForm {
-  clean_addressee: string;
-  clean_line_1: string;
-  clean_line_2: string;
-  clean_city: string;
-  clean_state: string;
-  clean_postal_code: string;
-  clean_country: string;
-}
-
-export const emptyForm: CleanAddressForm = {
-  clean_addressee: "",
-  clean_line_1: "",
-  clean_line_2: "",
-  clean_city: "",
-  clean_state: "",
-  clean_postal_code: "",
-  clean_country: "",
-};
+import type { DbMember } from "@/shared/db-types"
+import { getCountryName, toUpper, type CleanAddressForm, emptyForm } from '@/shared/address-utils'
+import type { PatreonMember, PatreonIncluded, PatreonPledgeEvent } from "@/shared/patreon-types"
+import { isPledgeEvent } from "@/shared/patreon-types"
+import { format } from "date-fns"
 
 interface ContentProps {
   member: MemberRow;
-  dbMemberMap: Record<string, any>;
+  rawMember: PatreonMember | null;
+  included: PatreonIncluded[];
+  dbMemberMap: Record<string, DbMember>;
   onClose?: () => void;
-  onDbRefresh: (members: any[]) => void;
+  onDbRefresh: (members: DbMember[]) => void;
+}
+
+function getPledgeEventColor(id: string): string {
+  const type = id.split(':')[0]
+  switch (type) {
+    case 'subscription': return 'bg-green-500'
+    case 'pledge_start': return 'bg-blue-500'
+    case 'pledge_upgrade': return 'bg-purple-500'
+    case 'pledge_downgrade': return 'bg-orange-500'
+    case 'pledge_delete': return 'bg-destructive'
+    default: return 'bg-muted-foreground'
+  }
 }
 
 // Shared inner content — used by both the Sheet wrapper and inline in ExpandedEnvelope
 export function MemberAddressPanelContent({
-  member,
-  dbMemberMap,
-  onClose,
-  onDbRefresh,
+  member, rawMember, included, dbMemberMap, onClose, onDbRefresh,
 }: ContentProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [form, setForm] = useState<CleanAddressForm>(emptyForm);
+
+  const pledgeEvents = useMemo<PatreonPledgeEvent[]>(() => {
+    if (!rawMember) return []
+    const ids = new Set(
+      ((rawMember.relationships?.pledge_history?.data as Array<{ id: string }>) ?? [])
+        .map((d) => d.id)
+    )
+    return included
+      .filter((i): i is PatreonPledgeEvent => isPledgeEvent(i) && ids.has(i.id))
+      .sort((a, b) => new Date(b.attributes.date).getTime() - new Date(a.attributes.date).getTime())
+  }, [rawMember, included])
+
+  useEffect(() => {
+    if (rawMember) {
+      console.log('rawMember:', JSON.stringify(rawMember, null, 2))
+    }
+  }, [rawMember])
+
+  useEffect(() => {
+    if (pledgeEvents.length > 0) {
+      console.log('first pledge event:', JSON.stringify(pledgeEvents[0], null, 2))
+    }
+  }, [pledgeEvents])
 
   useEffect(() => {
     if (isEditing) {
@@ -145,8 +86,8 @@ export function MemberAddressPanelContent({
 
   const setField =
     (field: keyof CleanAddressForm) =>
-    (e: React.ChangeEvent<HTMLInputElement>) =>
-      setForm((prev) => ({ ...prev, [field]: e.target.value.toUpperCase() }));
+      (e: React.ChangeEvent<HTMLInputElement>) =>
+        setForm((prev) => ({ ...prev, [field]: e.target.value.toUpperCase() }));
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -188,9 +129,8 @@ export function MemberAddressPanelContent({
 
   return (
     <div className="flex flex-col h-full">
-      {/* Close bar */}
       {onClose && (
-        <div className="flex items-center justify-end px-3 py-3">
+        <div className="flex items-center justify-end px-3 py-3 shrink-0">
           <Button variant="ghost" className="h-10 w-10 rounded-full p-0" onClick={onClose}>
             <X className="!h-5 !w-5 shrink-0" />
             <span className="sr-only">Close</span>
@@ -199,14 +139,14 @@ export function MemberAddressPanelContent({
       )}
 
       {/* Content */}
-      <div className="flex flex-col gap-4 px-6 pb-6 overflow-y-auto">
+      <div className="flex flex-col gap-4 px-6 pb-6">
 
         {/* Patreon Address Card */}
         <Card className="bg-background ring-0">
           <CardHeader>
             <CardTitle className="text-sm">Patreon Address</CardTitle>
           </CardHeader>
-          <CardContent className="text-sm text-muted-foreground flex flex-col gap-1">
+          <CardContent className="text-sm text-muted-foreground flex flex-col gap-1 select-text cursor-text">
             {liveDb?.raw_addressee && <p>{liveDb.raw_addressee}</p>}
             {liveDb?.raw_line_1 ? (
               <p>{liveDb.raw_line_1}</p>
@@ -293,6 +233,44 @@ export function MemberAddressPanelContent({
             )}
           </CardContent>
         </Card>
+
+        {/* Pledge History Card */}
+        {pledgeEvents.length > 0 && (
+          <Card className="bg-background ring-0">
+            <CardHeader>
+              <CardTitle className="text-sm">Pledge History</CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm text-muted-foreground p-0">
+              <div className="overflow-y-auto max-h-64 flex flex-col gap-0 px-6 pb-6 scrollbar-thin scrollbar-autohide">
+                {pledgeEvents.map((event) => (
+                  <div key={event.id} className="flex flex-col gap-1 py-2.5 border-b border-border last:border-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2 w-2 rounded-full shrink-0 ${getPledgeEventColor(event.id)}`} />
+                        <span className="font-medium text-foreground">
+                          {format(new Date(event.attributes.date), "MMM d, yyyy")}
+                        </span>
+                      </div>
+                      <span className={event.attributes.payment_status === "Paid" ? "text-foreground font-medium" : "text-destructive"}>
+                        {event.attributes.payment_status === "Paid"
+                          ? `${event.attributes.currency_code} ${(event.attributes.amount_cents / 100).toFixed(2)}`
+                          : event.attributes.payment_status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 pl-4">
+                      <span className="text-xs capitalize text-muted-foreground">
+                        {event.id.split(':')[0].replace(/_/g, ' ')}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {event.attributes.tier_title ?? "—"}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
@@ -301,26 +279,31 @@ export function MemberAddressPanelContent({
 // Sheet wrapper — used in MembersPage
 interface SheetProps {
   selectedMember: MemberRow | null;
-  dbMemberMap: Record<string, any>;
+  dbMemberMap: Record<string, DbMember>;
   onClose: () => void;
-  onDbRefresh: (members: any[]) => void;
+  onDbRefresh: (members: DbMember[]) => void;
+  members: PatreonMember[];
+  included: PatreonIncluded[];
 }
 
 export function MemberAddressPanel({
-  selectedMember,
-  dbMemberMap,
-  onClose,
-  onDbRefresh,
+  selectedMember, dbMemberMap, onClose, onDbRefresh, members, included,
 }: SheetProps) {
+  const rawMember = selectedMember
+    ? members.find((m) => m.id === selectedMember.id) ?? null
+    : null;
+
   return (
     <Sheet open={!!selectedMember} onOpenChange={(open) => !open && onClose()}>
-      <SheetContent className="w-[450px] sm:max-w-[450px] p-0 bg-sidebar" showCloseButton={false}>
+      <SheetContent className="w-[450px] sm:max-w-[450px] p-0 bg-sidebar overflow-y-auto scrollbar-thin scrollbar-autohide" showCloseButton={false}>
         <VisuallyHiddenPrimitive.Root>
           <SheetTitle>{selectedMember?.full_name}</SheetTitle>
         </VisuallyHiddenPrimitive.Root>
         {selectedMember && (
           <MemberAddressPanelContent
             member={selectedMember}
+            rawMember={rawMember}
+            included={included}
             dbMemberMap={dbMemberMap}
             onClose={onClose}
             onDbRefresh={onDbRefresh}

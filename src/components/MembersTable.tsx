@@ -6,6 +6,7 @@ import {
   getFilteredRowModel,
   flexRender,
   type ColumnDef,
+  type Column,
   type SortingState,
   type ColumnFiltersState,
 } from "@tanstack/react-table";
@@ -21,7 +22,7 @@ import {
 import { type MemberRow } from "@/lib/patreon";
 import { MemberFilters } from "./MemberFilters";
 
-function SortHeader({ column, label }: { column: any; label: string }) {
+function SortHeader({ column, label }: { column: Column<MemberRow, unknown>; label: string }) {
   return (
     <button
       className="flex items-center gap-1 hover:text-foreground"

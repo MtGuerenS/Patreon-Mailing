@@ -1,4 +1,7 @@
 import { type DateRange } from "react-day-picker";
+import type { PatreonMember, PatreonIncluded, PatreonAddressResource, PatreonPledgeEvent } from "@/shared/patreon-types";
+import { isPledgeEvent, isAddress } from "@/shared/patreon-types";
+import type { DbMember } from "@/shared/db-types";
 
 export const MONTHS = [
   { value: "0", label: "January" },
@@ -36,26 +39,26 @@ export type MemberRow = {
 };
 
 export function filterMembersByRange(
-  members: any[],
-  included: any[],
+  members: PatreonMember[],
+  included: PatreonIncluded[],
   range: DateRange | undefined,
-): any[] {
-  if (!range?.from) return members;
+): (PatreonMember & { _tierTitle: string })[] {
+  if (!range?.from) return members.map(m => ({ ...m, _tierTitle: '—' }));
 
   const start = range.from;
   const end = range.to ?? range.from;
-  const result: any[] = [];
+  const result: (PatreonMember & { _tierTitle: string })[] = [];
 
   for (const member of members) {
     const pledgeEventIds: string[] = (
-      member.relationships?.pledge_history?.data ?? []
-    ).map((d: any) => d.id);
+      (member.relationships?.pledge_history?.data as Array<{ id: string }>) ?? []
+    ).map((d) => d.id);
 
     if (pledgeEventIds.length === 0) continue;
 
     const pledgeEvents = included.filter(
-      (item) =>
-        item.type === "pledge-event" && pledgeEventIds.includes(item.id),
+      (item): item is PatreonPledgeEvent =>
+        isPledgeEvent(item) && pledgeEventIds.includes(item.id),
     );
 
     const paidEventsInRange = pledgeEvents.filter((event) => {
@@ -75,11 +78,9 @@ export function filterMembersByRange(
         new Date(a.attributes.date).getTime(),
     );
 
-    const mostRecent = paidEventsInRange[0];
-
     result.push({
       ...member,
-      _tierTitle: mostRecent.attributes.tier_title ?? "—",
+      _tierTitle: paidEventsInRange[0].attributes.tier_title ?? "—",
     });
   }
 
@@ -87,46 +88,30 @@ export function filterMembersByRange(
 }
 
 export function buildTableRow(
-  member: any,
-  included: any[],
-  dbMember?: any,
+  member: PatreonMember & { _tierTitle?: string },
+  included: PatreonIncluded[],
+  dbMember?: DbMember,
   packed = false,
 ): MemberRow {
-  const addressId = member.relationships?.address?.data?.id;
-  const address = included.find(
-    (i) => i.type === "address" && i.id === addressId,
-  );
+  const addressId = (member.relationships?.address?.data as { id: string } | null)?.id;
+  const address = addressId
+    ? included.find((i): i is PatreonAddressResource => isAddress(i) && i.id === addressId)
+    : null;
 
-  // Prefer clean DB address if verified, fall back to Patreon address
-  const useClean =
-    dbMember?.address_status === "verified" && dbMember?.clean_line_1;
+  const useClean = dbMember?.address_status === "verified" && dbMember?.clean_line_1;
 
   return {
     id: member.id,
     packed,
     full_name: member.attributes.full_name ?? "—",
-    addressee: useClean
-      ? (dbMember.clean_addressee ?? "—")
-      : (address?.attributes?.addressee ?? "—"),
+    addressee: useClean ? (dbMember!.clean_addressee ?? "—") : (address?.attributes?.addressee ?? "—"),
     tier_title: member._tierTitle ?? "—",
-    line_1: useClean
-      ? (dbMember.clean_line_1 ?? "—")
-      : (address?.attributes?.line_1 ?? "—"),
-    line_2: useClean
-      ? (dbMember.clean_line_2 ?? "—")
-      : (address?.attributes?.line_2 ?? "—"),
-    city: useClean
-      ? (dbMember.clean_city ?? "—")
-      : (address?.attributes?.city ?? "—"),
-    state: useClean
-      ? (dbMember.clean_state ?? "—")
-      : (address?.attributes?.state ?? "—"),
-    zip: useClean
-      ? (dbMember.clean_postal_code ?? "—")
-      : (address?.attributes?.postal_code ?? "—"),
-    country: useClean
-      ? (dbMember.clean_country ?? "—")
-      : (address?.attributes?.country ?? "—"),
+    line_1: useClean ? (dbMember!.clean_line_1 ?? "—") : (address?.attributes?.line_1 ?? "—"),
+    line_2: useClean ? (dbMember!.clean_line_2 ?? "—") : (address?.attributes?.line_2 ?? "—"),
+    city: useClean ? (dbMember!.clean_city ?? "—") : (address?.attributes?.city ?? "—"),
+    state: useClean ? (dbMember!.clean_state ?? "—") : (address?.attributes?.state ?? "—"),
+    zip: useClean ? (dbMember!.clean_postal_code ?? "—") : (address?.attributes?.postal_code ?? "—"),
+    country: useClean ? (dbMember!.clean_country ?? "—") : (address?.attributes?.country ?? "—"),
     address_status: dbMember?.address_status ?? null,
   };
 }

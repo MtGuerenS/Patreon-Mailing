@@ -1,50 +1,32 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { type DateRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
 import { MembersTable } from "@/components/MembersTable";
 import { MemberAddressPanel } from "@/components/MemberAddressPanel";
-import {
-  filterMembersByRange,
-  buildTableRow,
-  MONTHS,
-  type MemberRow,
-} from "@/lib/patreon";
+import { filterMembersByRange, buildTableRow, MONTHS, type MemberRow } from "@/lib/patreon";
 import { usePackedMembers } from "@/hooks/usePackedMembers";
+import { useMembersContext } from "@/context/MembersContext";
+import { Progress } from "@/components/ui/progress";
 
 interface Props {
-  accessToken: string | null;
-  members: any[];
-  included: any[];
-  dbMembers: any[];
-  loading: boolean;
-  error: string | null;
-  onLogin: () => void;
-  onLogout: () => void;
-  onRefresh: () => void;
-  onDbRefresh: (members: any[]) => void;
-  selectedMonth: string;
-  selectedYear: string;
-  onMonthChange: (val: string) => void;
-  onYearChange: (val: string) => void;
+  accessToken: string | null
+  loading: boolean
+  loadStatus: string | null
+  error: string | null
+  onRefresh: () => void
+  selectedMonth: string
+  selectedYear: string
+  onMonthChange: (val: string) => void
+  onYearChange: (val: string) => void
 }
 
 export function MembersPage({
-  accessToken,
-  members,
-  included,
-  dbMembers,
-  loading,
-  error,
-  onLogin,
-  onLogout,
-  onRefresh,
-  onDbRefresh,
-  selectedMonth,
-  selectedYear,
-  onMonthChange,
-  onYearChange,
+  accessToken, loading, loadStatus, error, onRefresh,
+  selectedMonth, selectedYear, onMonthChange, onYearChange,
 }: Props) {
+  const { members, included, dbMembers, setDbMembers } = useMembersContext();
   const [selectedMember, setSelectedMember] = useState<MemberRow | null>(null);
+  const [progress, setProgress] = useState(0)
 
   const dateRange = useMemo<DateRange>(
     () => ({
@@ -71,26 +53,50 @@ export function MembersPage({
     [filteredMembers, included, dbMemberMap, packedIds],
   );
 
+  useEffect(() => {
+    if (loadStatus === 'Fetching members...') {
+      setProgress(10)
+      const start = Date.now()
+      const interval = setInterval(() => {
+        const elapsed = (Date.now() - start) / 1000
+        const next = 10 + (elapsed / 15) * 85 // 10% → 95% over 15s
+        if (next >= 95) {
+          setProgress(95)
+          clearInterval(interval)
+        } else {
+          setProgress(next)
+        }
+      }, 100)
+      return () => clearInterval(interval)
+    }
+    if (!loadStatus) {
+      setProgress(0)
+    }
+  }, [loadStatus])
+
   const currentMonthLabel = MONTHS[parseInt(selectedMonth)].label;
 
   return (
     <div className="flex flex-col gap-6 p-8 w-full">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Members</h1>
-        <div className="flex items-center gap-3">
-          {accessToken && !loading && (
-            <Button variant="ghost" size="sm" onClick={onRefresh}>Refresh</Button>
-          )}
-          {!accessToken ? (
-            <Button onClick={onLogin}>Login with Patreon</Button>
-          ) : (
-            <Button variant="ghost" size="sm" onClick={onLogout}>Log out</Button>
-          )}
-        </div>
+        {accessToken && !loading && (
+          <Button variant="ghost" size="sm" onClick={onRefresh}>Refresh</Button>
+        )}
       </div>
 
       {error && <p className="text-destructive text-sm">{error}</p>}
-      {loading && <p className="text-sm text-muted-foreground">Loading members...</p>}
+      {loading && (
+        <div className="flex flex-col items-center justify-center flex-1 gap-3 py-24">
+          <p className="text-sm text-muted-foreground">{loadStatus ?? 'Loading...'}</p>
+          {loadStatus !== 'Fetching campaigns...' && (
+            <Progress
+              value={progress}
+              className="w-48 [&>div]:transition-all [&>div]:duration-100"
+            />
+          )}
+        </div>
+      )}
 
       {accessToken && !loading && members.length > 0 && (
         <MembersTable
@@ -100,7 +106,7 @@ export function MembersPage({
           onMonthChange={onMonthChange}
           onYearChange={onYearChange}
           emptyLabel={`No members found for ${currentMonthLabel} ${selectedYear}.`}
-          onMemberSelect={(m) => { setSelectedMember(m); }}
+          onMemberSelect={(m) => setSelectedMember(m)}
           onTogglePacked={togglePacked}
         />
       )}
@@ -109,7 +115,9 @@ export function MembersPage({
         selectedMember={selectedMember}
         dbMemberMap={dbMemberMap}
         onClose={() => setSelectedMember(null)}
-        onDbRefresh={onDbRefresh}
+        onDbRefresh={setDbMembers}
+        members={members}
+        included={included}
       />
     </div>
   );

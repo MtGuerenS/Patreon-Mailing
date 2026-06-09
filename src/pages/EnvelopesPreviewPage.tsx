@@ -4,7 +4,9 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { type MemberRow } from "@/lib/patreon";
 import { MemberAddressPanelContent } from "@/components/MemberAddressPanel";
-import { jsPDF } from "jspdf";
+import type { DbMember } from "@/shared/db-types"
+import { PatreonIncluded, PatreonMember } from "@/shared/patreon-types";
+import { useMembersContext } from "@/context/MembersContext"
 
 type BoundingBox = { x: number; y: number; width: number; height: number };
 
@@ -16,10 +18,6 @@ interface PreviewState {
     members: MemberRow[];
 }
 
-interface Props {
-    dbMembers: any[];
-    onDbRefresh: (members: any[]) => void;
-}
 
 function getBox(img: HTMLImageElement, wPct: number, hPct: number): BoundingBox {
     const w = img.naturalWidth * (wPct / 100);
@@ -39,10 +37,11 @@ function drawEnvelope(
     widthPct: number,
     heightPct: number,
     bgColor: string,
+    existingCtx?: CanvasRenderingContext2D,
 ) {
-    const ctx = canvas.getContext("2d")!;
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
+    const ctx = existingCtx ?? canvas.getContext("2d")!;
+    if (canvas.width !== img.naturalWidth) canvas.width = img.naturalWidth;
+    if (canvas.height !== img.naturalHeight) canvas.height = img.naturalHeight;
     const box = getBox(img, widthPct, heightPct);
     const fontSize = box.height / 7;
 
@@ -75,7 +74,7 @@ function drawEnvelope(
     });
 }
 
-function getAddressLines(member: MemberRow, liveDb?: any): string[] {
+function getAddressLines(member: MemberRow, liveDb?: DbMember): string[] {
     const useClean = liveDb?.address_status === "verified" && liveDb?.clean_line_1;
     if (useClean) {
         return [
@@ -103,7 +102,7 @@ function EnvelopeCanvas({
     member, templateSrc, widthPct, heightPct, bgColor, onClick, dimmed, dbMemberMap,
 }: {
     member: MemberRow; templateSrc: string; widthPct: number; heightPct: number;
-    bgColor: string; onClick: () => void; dimmed: boolean; dbMemberMap: Record<string, any>;
+    bgColor: string; onClick: () => void; dimmed: boolean; dbMemberMap: Record<string, DbMember>;
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const imgRef = useRef<HTMLImageElement | null>(null);
@@ -144,11 +143,13 @@ const PANEL_WIDTH = 380;
 const PANEL_MARGIN = 24; // right-6 = 1.5rem = 24px
 
 function ExpandedEnvelope({
-    member, templateSrc, widthPct, heightPct, bgColor, onClose, dbMemberMap, onDbRefresh,
+    member, templateSrc, widthPct, heightPct, bgColor, onClose, dbMemberMap, onDbRefresh, rawMember, included,
 }: {
     member: MemberRow; templateSrc: string; widthPct: number; heightPct: number;
-    bgColor: string; onClose: () => void; dbMemberMap: Record<string, any>;
-    onDbRefresh: (members: any[]) => void;
+    bgColor: string; onClose: () => void; dbMemberMap: Record<string, DbMember>;
+    onDbRefresh: (members: DbMember[]) => void;
+    rawMember: PatreonMember | null;
+    included: PatreonIncluded[];
 }) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const imgRef = useRef<HTMLImageElement | null>(null);
@@ -199,12 +200,14 @@ function ExpandedEnvelope({
 
             {/* Address panel — absolutely pinned to right */}
             <div
-                className="absolute top-6 right-6 bottom-6 bg-sidebar rounded-xl overflow-y-auto py-3"
+                className="absolute top-6 right-6 bottom-6 bg-sidebar rounded-xl overflow-y-auto scrollbar-thin scrollbar-autohide py-3"
                 style={{ width: PANEL_WIDTH }}
                 onClick={(e) => e.stopPropagation()}
             >
                 <MemberAddressPanelContent
                     member={member}
+                    rawMember={rawMember}
+                    included={included}
                     dbMemberMap={dbMemberMap}
                     onDbRefresh={onDbRefresh}
                     onClose={onClose}
@@ -219,53 +222,92 @@ async function generatePdf(
     templateSrc: string,
     widthPct: number,
     heightPct: number,
-    dbMemberMap: Record<string, any>,
+    dbMemberMap: Record<string, DbMember>,
 ): Promise<void> {
-    // Load the template image once
     const img = await new Promise<HTMLImageElement>((res) => {
         const i = new Image();
         i.onload = () => res(i);
         i.src = templateSrc;
     });
 
+    const SCALE = 0.5;
+    const W = Math.round(img.naturalWidth * SCALE);
+    const H = Math.round(img.naturalHeight * SCALE);
+
+    const scaledImg = document.createElement("canvas");
+    scaledImg.width = W;
+    scaledImg.height = H;
+    const scaledImgCtx = scaledImg.getContext("2d")!;
+    scaledImgCtx.fillStyle = "white";
+    scaledImgCtx.fillRect(0, 0, W, H);
+    scaledImgCtx.drawImage(img, 0, 0, W, H);
+
     await document.fonts.load(`16px "Delius"`);
 
-    const offscreen = document.createElement("canvas");
-    // PDF page size matches image aspect ratio, in points (72dpi)
-    const pdfW = img.naturalWidth / 3;  // scale down: 1px ≈ 0.33pt looks good
-    const pdfH = img.naturalHeight / 3;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, W, H);
 
-    const pdf = new jsPDF({
-        orientation: pdfW > pdfH ? "landscape" : "portrait",
-        unit: "pt",
-        format: [pdfW, pdfH],
-    });
+    const dataUrls: string[] = [];
 
-    for (let i = 0; i < members.length; i++) {
-        const member = members[i];
+    for (const member of members) {
         const liveDb = dbMemberMap[member.id];
         const addressLines = getAddressLines(member, liveDb);
         if (addressLines.length === 0) continue;
 
-        // Draw onto offscreen canvas with transparent background
-        await drawEnvelope(offscreen, img, addressLines, widthPct, heightPct, "rgba(0,0,0,0)");
+        ctx.clearRect(0, 0, W, H);
+        ctx.fillStyle = "white";
+        ctx.fillRect(0, 0, W, H);
+        ctx.drawImage(scaledImg, 0, 0);
 
-        // Export as PNG (supports transparency)
-        const dataUrl = offscreen.toDataURL("image/png");
+        const box = {
+            x: (W - W * (widthPct / 100)) / 2,
+            y: (H - H * (heightPct / 100)) / 2,
+            width: W * (widthPct / 100),
+            height: H * (heightPct / 100),
+        };
+        const fontSize = box.height / 7;
 
-        if (i > 0) pdf.addPage([pdfW, pdfH]);
-        pdf.addImage(dataUrl, "PNG", 0, 0, pdfW, pdfH);
+        await document.fonts.load(`${fontSize}px "Delius"`);
+
+        let fs = fontSize;
+        ctx.font = `${fs}px "Delius"`;
+        const paddedWidth = box.width * 0.9;
+        const longestLine = addressLines.reduce((a, b) => a.length > b.length ? a : b);
+        while (ctx.measureText(longestLine).width > paddedWidth && fs > 6) {
+            fs -= 0.5;
+            ctx.font = `${fs}px "Delius"`;
+        }
+
+        ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "left";
+        const lineHeight = fs * 1.1;
+        const totalTextHeight = addressLines.length * lineHeight;
+        const longestWidth = Math.max(...addressLines.map((l) => ctx.measureText(l).width));
+        const startX = box.x + (box.width - longestWidth) / 2;
+        const startY = box.y + (box.height - totalTextHeight) / 2 + lineHeight / 2;
+        addressLines.forEach((line, i) => ctx.fillText(line, startX, startY + i * lineHeight));
+
+        dataUrls.push(canvas.toDataURL("image/jpeg", 0.9));
     }
 
-    pdf.save("envelopes.pdf");
+    if (dataUrls.length === 0) return;
+
+    const aspectRatio = img.naturalWidth / img.naturalHeight;
+    await window.patreonAPI.exportPdf(dataUrls, aspectRatio);
 }
 
-export function EnvelopesPreviewPage({ dbMembers, onDbRefresh }: Props) {
+export function EnvelopesPreviewPage() {
     const location = useLocation();
     const navigate = useNavigate();
     const state = location.state as PreviewState | null;
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const [saving, setSaving] = useState(false);
+    const { dbMembers, setDbMembers, members: rawMembers, included } = useMembersContext();
 
     const dbMemberMap = useMemo(
         () => Object.fromEntries(dbMembers.map((m) => [m.id, m])),
@@ -337,7 +379,9 @@ export function EnvelopesPreviewPage({ dbMembers, onDbRefresh }: Props) {
                     bgColor={bgColor}
                     onClose={() => setExpandedId(null)}
                     dbMemberMap={dbMemberMap}
-                    onDbRefresh={onDbRefresh}
+                    onDbRefresh={setDbMembers}
+                    rawMember={rawMembers.find((m) => m.id === expandedId) ?? null}
+                    included={included}
                 />
             )}
         </div>

@@ -1,50 +1,65 @@
-import { useState } from 'react'
+import { useState } from "react";
+import type { PatreonMember, PatreonIncluded } from "@/shared/patreon-types";
+import type { DbMember } from "@/shared/db-types";
 
 export function usePatreonMembers() {
-  const [members, setMembers] = useState<any[]>([])
-  const [included, setIncluded] = useState<any[]>([])
-  const [dbMembers, setDbMembers] = useState<any[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [members, setMembers] = useState<PatreonMember[]>([]);
+  const [included, setIncluded] = useState<PatreonIncluded[]>([]);
+  const [dbMembers, setDbMembers] = useState<DbMember[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [loadStatus, setLoadStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const loadMembers = async (token: string) => {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      console.log('[loadMembers] Fetching campaigns...')
-      const campaignData = await window.patreonAPI.getCampaigns(token)
-      const campaignId = campaignData.data[0]?.id
-      if (!campaignId) throw new Error('No campaign found for this account')
-      console.log('[loadMembers] Fetching members for campaign:', campaignId)
-      const memberData = await window.patreonAPI.getCampaignMembers(campaignId, token)
-      setMembers(memberData.data ?? [])
-      setIncluded(memberData.included ?? [])
-      console.log(`[loadMembers] Fetched ${memberData.data?.length ?? 0} members, ${memberData.included?.length ?? 0} included`)
-      console.log('[loadMembers] Syncing DB...')
-      await window.patreonAPI.dbSyncMembers()
-      console.log('[loadMembers] DB synced, loading DB members...')
-      const db = await window.patreonAPI.dbGetMembers()
-      setDbMembers(db ?? [])
-      console.log(`[loadMembers] Done. ${db?.length ?? 0} members in DB`)
+      setLoadStatus("Fetching campaigns...");
+      const campaignData = await window.patreonAPI.getCampaigns(token);
+      const campaignId = campaignData.data[0]?.id;
+      if (!campaignId) throw new Error("No campaign found for this account");
+      setLoadStatus("Fetching members...");
+      const memberData = await window.patreonAPI.getCampaignMembers(
+        campaignId,
+        token,
+      );
+      setMembers(memberData.data ?? []);
+      setIncluded(memberData.included ?? []);
+      setLoadStatus("Syncing database...");
+      await window.patreonAPI.dbSyncMembers();
+      setLoadStatus("Loading member data...");
+      const db = await window.patreonAPI.dbGetMembers();
+      setDbMembers(db ?? []);
     } catch (err) {
-      console.error('[loadMembers] Error:', err)
-      setError((err as Error).message)
+      setError((err as Error).message);
     } finally {
-      setLoading(false)
+      setLoadStatus(null);
+      setLoading(false);
     }
-  }
+  };
 
   const refreshMembers = async (token: string) => {
-    await window.patreonAPI.refreshMembers()
-    await loadMembers(token)
-  }
+    await window.patreonAPI.refreshMembers();
+    await loadMembers(token);
+  };
 
   const reset = () => {
-    setMembers([])
-    setIncluded([])
-    setDbMembers([])
-    setError(null)
-  }
+    setMembers([]);
+    setIncluded([]);
+    setDbMembers([]);
+    setError(null);
+  };
 
-  return { members, included, dbMembers, setDbMembers, loading, error, loadMembers, refreshMembers, reset }
+  return {
+    members,
+    included,
+    dbMembers,
+    setDbMembers,
+    loading,
+    loadStatus,
+    error,
+    loadMembers,
+    refreshMembers,
+    reset,
+  };
 }

@@ -1,4 +1,5 @@
 import { ipcRenderer, contextBridge } from "electron";
+import type { CleanAddressForm } from "../src/shared/address-utils";
 
 contextBridge.exposeInMainWorld("patreonAPI", {
   login: () => ipcRenderer.send("patreon-login"),
@@ -33,17 +34,33 @@ contextBridge.exposeInMainWorld("patreonAPI", {
 
   refreshMembers: () => ipcRenderer.invoke("patreon-refresh-members"),
 
-  dbSyncMembers: () => ipcRenderer.invoke('db-sync-members'),
+  dbSyncMembers: () => ipcRenderer.invoke("db-sync-members"),
 
   dbGetMembers: () => ipcRenderer.invoke("db-get-members"),
 
-  dbUpdateCleanAddress: (id: string, fields: any) =>
-    ipcRenderer.invoke("db-update-clean-address", id, fields),
+  dbUpdateCleanAddress: (
+    id: string,
+    fields: CleanAddressForm & { address_status: "verified" | "check_needed" | "missing" },
+  ) => ipcRenderer.invoke("db-update-clean-address", id, fields),
 
-  dbSetStatus: (id: string, status: string) =>
+  dbSetStatus: (id: string, status: "verified" | "check_needed" | "missing") =>
     ipcRenderer.invoke("db-set-status", id, status),
 
-  getPacked:  (year: number, month: number) => ipcRenderer.invoke("get-packed", year, month),
+  getPacked: (year: number, month: number) =>
+    ipcRenderer.invoke("get-packed", year, month),
 
-  setPacked:  (memberId: string, year: number, month: number, packed: boolean) => ipcRenderer.invoke("set-packed", memberId, year, month, packed),
+  setPacked: (memberId: string, year: number, month: number, packed: boolean) =>
+    ipcRenderer.invoke("set-packed", memberId, year, month, packed),
+
+  windowSetMain: () => ipcRenderer.send("window-set-main"),
+
+  exportPdf: (dataUrls: string[], aspectRatio: number) =>
+    ipcRenderer.invoke("export-pdf", dataUrls, aspectRatio),
+
+  testPrintPdf: () => ipcRenderer.invoke("test-print-pdf"),
+
+  ...(process.env.NODE_ENV === "development" && {
+    devVerifyAll: () => ipcRenderer.invoke("dev-verify-all-members"),
+    devUnverifyAll: () => ipcRenderer.invoke("dev-unverify-all-members"),
+  }),
 });

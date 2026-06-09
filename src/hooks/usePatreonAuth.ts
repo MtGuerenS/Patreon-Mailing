@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 export function usePatreonAuth(onTokenReady?: (token: string) => void) {
   const [accessToken, setAccessToken] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     window.patreonAPI.getSavedTokens().then(tokens => {
@@ -10,6 +11,7 @@ export function usePatreonAuth(onTokenReady?: (token: string) => void) {
         setAccessToken(tokens.access_token)
         onTokenReady?.(tokens.access_token)
       }
+      setLoading(false)
     })
   }, [])
 
@@ -29,5 +31,5 @@ export function usePatreonAuth(onTokenReady?: (token: string) => void) {
     setError(null)
   }
 
-  return { accessToken, error, login, logout }
+  return { accessToken, error, loading, login, logout }
 }
