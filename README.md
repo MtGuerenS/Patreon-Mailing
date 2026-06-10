@@ -1,6 +1,6 @@
 # Patreon Mailing
 
-A desktop app for managing and sending mailings to your Patreon supporters — built with Electron, React, and SQLite.
+A desktop app for managing and sending mailings to your Patreon supporters.
 
 ![License](https://img.shields.io/github/license/mtguerens/patreon-mailing)
 ![Release](https://img.shields.io/github/v/release/mtguerens/patreon-mailing)
@@ -12,10 +12,9 @@ A desktop app for managing and sending mailings to your Patreon supporters — b
 ## Features
 
 - 📋 Manage your Patreon subscriber list locally
-- ✉️ Compose and send mailings to supporters
+- ✉️ Compose mailings to supporters
 - 📄 Export mailing reports to PDF
-- 🗃️ Offline-first — all data stored locally with SQLite
-- 🌙 Light and dark mode support
+- 🗃️ All data stored locally with SQLite
 
 ## Download
 
@@ -25,6 +24,7 @@ Head to the [**Releases**](https://github.com/mtguerens/patreon-mailing/releases
 |----------|-------------|------|
 | macOS | Apple Silicon (M1/M2/M3) | `Patreon.Mailing-x.x.x-arm64.dmg` |
 | macOS | Intel | `Patreon.Mailing-x.x.x-x64.dmg` |
+| Windows | x64 | `Patreon.Mailing-*-x64.exe` |
 
 > **macOS note:** The app is not notarized. When you open it for the first time, right-click the `.dmg` and choose **Open**, then confirm in the dialog.
 
@@ -66,7 +66,6 @@ The output DMGs will be in the `release/` directory.
 | UI | [React](https://react.dev/) + [TypeScript](https://www.typescriptlang.org/) |
 | Styling | [Tailwind CSS v4](https://tailwindcss.com/) + [shadcn/ui](https://ui.shadcn.com/) |
 | Database | [better-sqlite3](https://github.com/WiseLibs/better-sqlite3) |
-| Routing | [React Router](https://reactrouter.com/) |
 | PDF Export | [jsPDF](https://github.com/parallax/jsPDF) |
 | Build | [Vite](https://vitejs.dev/) + [electron-builder](https://www.electron.build/) |
 
