@@ -136,6 +136,9 @@ jobs:
                       ## Checksums
 
                       SHA256 checksums are included in `SHA256SUMS.txt` above.
-                  files: release-artifacts/**
+                  files: |
+                    release-artifacts/*.dmg
+                    release-artifacts/*.dmg.blockmap
+                    release-artifacts/SHA256SUMS.txt
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
