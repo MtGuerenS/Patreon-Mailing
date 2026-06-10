@@ -75,9 +75,9 @@ jobs:
               run: pnpm install --frozen-lockfile
 
             - name: Build app
-              run: pnpm build
+              run: pnpm build:ci
 
-            - name: Build (${{ matrix.arch }})
+            - name: Package (${{ matrix.arch }})
               run: pnpm exec electron-builder --mac dmg --${{ matrix.arch }} --publish never
               env:
                   CSC_IDENTITY_AUTO_DISCOVERY: false
