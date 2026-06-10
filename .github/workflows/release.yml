@@ -87,6 +87,9 @@ jobs:
 
             - name: Build app
               run: pnpm build:ci
+              env:
+                  PATREON_CLIENT_ID: ${{ secrets.PATREON_CLIENT_ID }}
+                  PATREON_CLIENT_SECRET: ${{ secrets.PATREON_CLIENT_SECRET }}
 
             - name: Package (${{ matrix.arch }})
               run: ${{ matrix.build_cmd }}
