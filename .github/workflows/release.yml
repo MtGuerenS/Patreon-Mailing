@@ -105,7 +105,7 @@ jobs:
               shell: pwsh
               run: |
                   cd release
-                  Get-ChildItem -MaxDepth 1 -File | Where-Object { $_.Name -ne 'SHA256SUMS.txt' } | `
+                  Get-ChildItem -Depth 0 -File | Where-Object { $_.Name -ne 'SHA256SUMS.txt' } | `
                     ForEach-Object { (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower() + "  " + $_.Name } | `
                     Sort-Object | Set-Content SHA256SUMS.txt
 
