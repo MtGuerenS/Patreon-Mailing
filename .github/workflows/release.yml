@@ -43,18 +43,29 @@ jobs:
               run: pnpm lint
 
     build:
-        name: Build macOS (${{ matrix.arch }})
-        runs-on: macos-latest
+        name: Build ${{ matrix.os_label }} (${{ matrix.arch }})
+        runs-on: ${{ matrix.runner }}
         timeout-minutes: 45
         needs: verify
         strategy:
             fail-fast: false
             matrix:
                 include:
-                    - arch: x64
+                    - runner: macos-latest
+                      os_label: macOS
+                      arch: x64
                       artifact_name: dmg-x64
-                    - arch: arm64
+                      build_cmd: pnpm exec electron-builder --mac dmg --x64 --publish never
+                    - runner: macos-latest
+                      os_label: macOS
+                      arch: arm64
                       artifact_name: dmg-arm64
+                      build_cmd: pnpm exec electron-builder --mac dmg --arm64 --publish never
+                    - runner: windows-latest
+                      os_label: Windows
+                      arch: x64
+                      artifact_name: nsis-x64
+                      build_cmd: pnpm exec electron-builder --win nsis --x64 --publish never
 
         steps:
             - name: Checkout
@@ -78,15 +89,25 @@ jobs:
               run: pnpm build:ci
 
             - name: Package (${{ matrix.arch }})
-              run: pnpm exec electron-builder --mac dmg --${{ matrix.arch }} --publish never
+              run: ${{ matrix.build_cmd }}
               env:
                   CSC_IDENTITY_AUTO_DISCOVERY: false
 
-            - name: Create SHA256 checksums
+            - name: Create SHA256 checksums (macOS)
+              if: runner.os == 'macOS'
               run: |
                   cd release
                   find . -maxdepth 1 -type f ! -name 'SHA256SUMS.txt' -print0 \
                     | sort -z | xargs -0 shasum -a 256 > SHA256SUMS.txt
+
+            - name: Create SHA256 checksums (Windows)
+              if: runner.os == 'Windows'
+              shell: pwsh
+              run: |
+                  cd release
+                  Get-ChildItem -MaxDepth 1 -File | Where-Object { $_.Name -ne 'SHA256SUMS.txt' } | `
+                    ForEach-Object { (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower() + "  " + $_.Name } | `
+                    Sort-Object | Set-Content SHA256SUMS.txt
 
             - name: Upload artifacts
               uses: actions/upload-artifact@v4
@@ -129,16 +150,21 @@ jobs:
                       |----------|-------------|------|
                       | macOS | Apple Silicon (M1/M2/M3) | `Patreon.Mailing-*-arm64.dmg` |
                       | macOS | Intel | `Patreon.Mailing-*-x64.dmg` |
+                      | Windows | x64 | `Patreon.Mailing-*-x64.exe` |
 
                       > **macOS note:** The app is unsigned. Right-click the `.dmg` → **Open** → confirm in the dialog.
                       > Or run: `xattr -dr com.apple.quarantine /Applications/Patreon\ Mailing.app`
+
+                      > **Windows note:** The installer is unsigned. Click **More info** → **Run anyway** in the SmartScreen dialog.
 
                       ## Checksums
 
                       SHA256 checksums are included in `SHA256SUMS.txt` above.
                   files: |
-                    release-artifacts/*.dmg
-                    release-artifacts/*.dmg.blockmap
-                    release-artifacts/SHA256SUMS.txt
+                      release-artifacts/*.dmg
+                      release-artifacts/*.dmg.blockmap
+                      release-artifacts/*.exe
+                      release-artifacts/*.exe.blockmap
+                      release-artifacts/SHA256SUMS.txt
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
