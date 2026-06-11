@@ -1,3 +1,5 @@
+
+
 # Patreon Mailing
 
 A desktop app for managing and sending mailings to your Patreon supporters.
@@ -27,6 +29,8 @@ Head to the [**Releases**](https://github.com/mtguerens/patreon-mailing/releases
 | Windows | x64 | `Patreon.Mailing-*-x64.exe` |
 
 > **macOS note:** The app is not notarized. When you open it for the first time, right-click the `.dmg` and choose **Open**, then confirm in the dialog.
+
+**Demo**: [Click this link](https://youtu.be/t_LyJhJGCpg)
 
 ## Getting Started (Development)
 
